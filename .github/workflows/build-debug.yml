@@ -1,0 +1,211 @@
+name: Build Android ID APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Create Android Project
+        run: |
+          mkdir -p AndroidID/app/src/main/java/com/tools/androidid
+          mkdir -p AndroidID/app/src/main/res/layout
+          mkdir -p AndroidID/app/src/main/res/values
+          mkdir -p AndroidID/gradle/wrapper
+
+          # settings.gradle.kts
+          cat > AndroidID/settings.gradle.kts << 'SETTINGS'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "AndroidID"
+          include(":app")
+          SETTINGS
+
+          # root build.gradle.kts
+          cat > AndroidID/build.gradle.kts << 'ROOTGRADLE'
+          plugins {
+              id("com.android.application") version "8.5.0" apply false
+              id("org.jetbrains.kotlin.android") version "1.9.24" apply false
+          }
+          ROOTGRADLE
+
+          # app build.gradle.kts
+          cat > AndroidID/app/build.gradle.kts << 'APPGRADLE'
+          plugins {
+              id("com.android.application")
+              id("org.jetbrains.kotlin.android")
+          }
+          android {
+              namespace = "com.tools.androidid"
+              compileSdk = 35
+              defaultConfig {
+                  applicationId = "com.tools.androidid"
+                  minSdk = 21
+                  targetSdk = 35
+                  versionCode = 1
+                  versionName = "1.0"
+              }
+              buildTypes {
+                  debug { isDebuggable = true }
+              }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+              kotlinOptions { jvmTarget = "17" }
+              buildFeatures { viewBinding = true }
+          }
+          dependencies {
+              implementation("androidx.appcompat:appcompat:1.7.0")
+              implementation("com.google.android.material:material:1.12.0")
+          }
+          APPGRADLE
+
+          # AndroidManifest.xml
+          cat > AndroidID/app/src/main/AndroidManifest.xml << 'MANIFEST'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application
+                  android:allowBackup="false"
+                  android:label="Android ID"
+                  android:theme="@style/Theme.AndroidID">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          MANIFEST
+
+          # MainActivity.kt
+          cat > AndroidID/app/src/main/java/com/tools/androidid/MainActivity.kt << 'ACTIVITY'
+          package com.tools.androidid
+
+          import android.content.ClipData
+          import android.content.ClipboardManager
+          import android.content.Context
+          import android.os.Bundle
+          import android.provider.Settings
+          import android.widget.Button
+          import android.widget.TextView
+          import android.widget.Toast
+          import androidx.appcompat.app.AppCompatActivity
+
+          class MainActivity : AppCompatActivity() {
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  setContentView(R.layout.activity_main)
+
+                  val androidId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: "Unavailable"
+                  findViewById<TextView>(R.id.tvAndroidId).text = androidId
+
+                  findViewById<Button>(R.id.btnCopy).setOnClickListener {
+                      val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                      clipboard.setPrimaryClip(ClipData.newPlainText("Android ID", androidId))
+                      Toast.makeText(this, "Copied!", Toast.LENGTH_SHORT).show()
+                  }
+              }
+          }
+          ACTIVITY
+
+          # activity_main.xml
+          cat > AndroidID/app/src/main/res/layout/activity_main.xml << 'LAYOUT'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              android:gravity="center"
+              android:background="#121212"
+              android:padding="32dp">
+              <TextView
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="YOUR ANDROID ID"
+                  android:textColor="#99FFFFFF"
+                  android:textSize="12sp"
+                  android:layout_marginBottom="16dp" />
+              <TextView
+                  android:id="@+id/tvAndroidId"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:padding="24dp"
+                  android:textColor="#FFFFFF"
+                  android:textSize="20sp"
+                  android:fontFamily="monospace"
+                  android:gravity="center"
+                  android:background="#1E1E1E"
+                  android:layout_marginBottom="24dp"
+                  android:textIsSelectable="true" />
+              <Button
+                  android:id="@+id/btnCopy"
+                  android:layout_width="match_parent"
+                  android:layout_height="56dp"
+                  android:text="Copy to Clipboard"
+                  android:backgroundTint="#FFFFFF"
+                  android:textColor="#000000" />
+          </LinearLayout>
+          LAYOUT
+
+          # themes.xml
+          cat > AndroidID/app/src/main/res/values/themes.xml << 'THEMES'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="Theme.AndroidID" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+                  <item name="android:windowBackground">#121212</item>
+                  <item name="android:statusBarColor">#121212</item>
+              </style>
+          </resources>
+          THEMES
+
+          # gradle wrapper properties
+          cat > AndroidID/gradle/wrapper/gradle-wrapper.properties << 'WRAPPER'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.7-bin.zip
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          WRAPPER
+
+      - name: Setup Gradle Wrapper
+        run: |
+          cd AndroidID
+          wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip -O gradle-bin.zip
+          unzip -q gradle-bin.zip
+          gradle-8.7/bin/gradle wrapper
+          chmod +x gradlew
+
+      - name: Build Debug APK
+        run: |
+          cd AndroidID
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AndroidID-debug
+          path: AndroidID/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
