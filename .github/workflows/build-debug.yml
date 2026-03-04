@@ -22,7 +22,6 @@ jobs:
           mkdir -p AndroidID/app/src/main/res/values
           mkdir -p AndroidID/gradle/wrapper
 
-          # settings.gradle.kts
           cat > AndroidID/settings.gradle.kts << 'SETTINGS'
           pluginManagement {
               repositories {
@@ -42,15 +41,13 @@ jobs:
           include(":app")
           SETTINGS
 
-          # root build.gradle.kts
           cat > AndroidID/build.gradle.kts << 'ROOTGRADLE'
           plugins {
-              id("com.android.application") version "8.5.0" apply false
+              id("com.android.application") version "8.7.3" apply false
               id("org.jetbrains.kotlin.android") version "1.9.24" apply false
           }
           ROOTGRADLE
 
-          # app build.gradle.kts
           cat > AndroidID/app/build.gradle.kts << 'APPGRADLE'
           plugins {
               id("com.android.application")
@@ -82,7 +79,12 @@ jobs:
           }
           APPGRADLE
 
-          # AndroidManifest.xml
+          cat > AndroidID/gradle.properties << 'PROPS'
+          android.useAndroidX=true
+          android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx2048m
+          PROPS
+
           cat > AndroidID/app/src/main/AndroidManifest.xml << 'MANIFEST'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -100,7 +102,6 @@ jobs:
           </manifest>
           MANIFEST
 
-          # MainActivity.kt
           cat > AndroidID/app/src/main/java/com/tools/androidid/MainActivity.kt << 'ACTIVITY'
           package com.tools.androidid
 
@@ -131,7 +132,6 @@ jobs:
           }
           ACTIVITY
 
-          # activity_main.xml
           cat > AndroidID/app/src/main/res/layout/activity_main.xml << 'LAYOUT'
           <?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -170,7 +170,6 @@ jobs:
           </LinearLayout>
           LAYOUT
 
-          # themes.xml
           cat > AndroidID/app/src/main/res/values/themes.xml << 'THEMES'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
@@ -181,11 +180,10 @@ jobs:
           </resources>
           THEMES
 
-          # gradle wrapper properties
           cat > AndroidID/gradle/wrapper/gradle-wrapper.properties << 'WRAPPER'
           distributionBase=GRADLE_USER_HOME
           distributionPath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.7-bin.zip
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.9-bin.zip
           zipStoreBase=GRADLE_USER_HOME
           zipStorePath=wrapper/dists
           WRAPPER
@@ -193,9 +191,9 @@ jobs:
       - name: Setup Gradle Wrapper
         run: |
           cd AndroidID
-          wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip -O gradle-bin.zip
+          wget -q https://services.gradle.org/distributions/gradle-8.9-bin.zip -O gradle-bin.zip
           unzip -q gradle-bin.zip
-          gradle-8.7/bin/gradle wrapper
+          gradle-8.9/bin/gradle wrapper
           chmod +x gradlew
 
       - name: Build Debug APK
